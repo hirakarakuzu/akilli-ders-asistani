@@ -1,0 +1,182 @@
+{
+  "name": "Flashcard Olustur",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flashcard-olustur",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "3a574bb8-3643-416c-ba89-86041b8b1893",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "46e241f2-731c-4976-9c0d-f4dcdf7297e2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=($input.first().json.body||{});\nconst text=b.text;\nif(!text||!String(text).trim()){return [{json:{success:false,error:'Ders notu bos olamaz.',skip:true}}];}\nlet count=parseInt(b.count,10); if(!(count>=3&&count<=25)) count=10;\nconst sys='Sen bir universite egitim asistanisin. Verilen ders notundan Turkce bilgi kartlari (flashcard) uret. '+\n'Sadece metindeki bilgileri kullan, disaridan bilgi ekleme. Her kartin on yuzu kisa ve net bir soru veya kavram, '+\n'arka yuzu 1-2 cumlelik dogru cevap olsun. Kartlar birbirini tekrar etmesin. '+\n'Yalnizca su JSON bicimiyle yanit ver: {\"cards\":[{\"front\":\"...\",\"back\":\"...\"}]}';\nreturn [{json:{count, ollamaBody:{model:'qwen2.5:7b',stream:false,format:'json',options:{temperature:0.3},messages:[\n{role:'system',content:sys},\n{role:'user',content:'Tam olarak '+count+' kart uret. Ders notu:\\n\\n'+String(text)}]}}}];"
+      },
+      "id": "5f70c441-fb7d-4a31-8b4f-b583d195ca43",
+      "name": "Istek Hazirla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "bedd34e8-79d8-4858-83aa-0ebcce4ac7f6",
+              "leftValue": "={{ $json.skip === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b56b583e-4b71-4f3d-955a-d14f6e078901",
+      "name": "Bos mu",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.ollamaBody) }}",
+        "options": {
+          "timeout": 200000
+        }
+      },
+      "id": "cecc71a1-fc3f-44cf-b84d-fac0f2cf0474",
+      "name": "Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j=$input.first().json;\nconst raw=j.message&&j.message.content;\nif(!raw){return [{json:{success:false,error:'Yapay zeka yanit veremedi.'}}];}\nlet data;\ntry{data=JSON.parse(raw);}catch(e){\n  const m=String(raw).match(/\\{[\\s\\S]*\\}/);\n  try{data=m?JSON.parse(m[0]):null;}catch(e2){data=null;}\n}\nlet list=Array.isArray(data)?data:(data&&(data.cards||data.flashcards||data.kartlar));\nif(!Array.isArray(list)){return [{json:{success:false,error:'Kartlar okunamadi. Tekrar deneyin.'}}];}\nconst seen=new Set();\nconst cards=[];\nfor(const c of list){\n  if(!c||typeof c!=='object') continue;\n  const f=String(c.front||c.soru||c.question||'').trim();\n  const bk=String(c.back||c.cevap||c.answer||'').trim();\n  if(!f||!bk||seen.has(f.toLowerCase())) continue;\n  seen.add(f.toLowerCase());\n  cards.push({front:f,back:bk});\n}\nif(cards.length<3){return [{json:{success:false,error:'Yeterli kart uretilemedi. Daha uzun bir not ile deneyin.'}}];}\nreturn [{json:{success:true,cards}}];"
+      },
+      "id": "b4786b20-5919-4363-814b-276c4f008532",
+      "name": "Kartlari Ayikla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "e27cf119-625c-4992-bfae-bb8ca12e2e4b",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Istek Hazirla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Istek Hazirla": {
+      "main": [
+        [
+          {
+            "node": "Bos mu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bos mu": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama": {
+      "main": [
+        [
+          {
+            "node": "Kartlari Ayikla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kartlari Ayikla": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}
