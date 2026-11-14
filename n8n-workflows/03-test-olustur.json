@@ -1,0 +1,131 @@
+{
+  "name": "Otomatik Test Olusturma",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "test-olustur",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "67f1dc54-4afc-4aa6-9233-151fe9edbae8",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "b401451b-8bcd-4155-94b6-0dad7718cbd9"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text=($input.first().json.body||{}).text;\nif(!text||!String(text).trim()){return [{json:{success:false,error:'Ders notu bos olamaz.'}}];}\nconst sys='Sen bir universite sinav hazirlama asistanisin. Verilen ders notundan TAM 5 adet coktan secmeli soru uret. Sorular sadece nottaki bilgilere dayansin. Her soruda 4 secenek olsun ve yalnizca biri dogru olsun. correct_answer degeri options listesindeki bir secenekle birebir ayni olmali. Sadece su JSON yapisini dondur: {\"questions\":[{\"question\":\"...\",\"topic\":\"kisa konu basligi\",\"options\":[\"...\",\"...\",\"...\",\"...\"],\"correct_answer\":\"...\",\"explanation\":\"...\"}]}';\nreturn [{json:{ollamaBody:{model:'qwen2.5:7b',stream:false,format:'json',options:{temperature:0.3,num_ctx:8192},messages:[{role:'system',content:sys},{role:'user',content:String(text)}]}}}];"
+      },
+      "id": "4071d497-2c46-4767-9b2f-1ece5ba4cbdd",
+      "name": "Istek Hazirla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.ollamaBody) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "b2d3bb91-8083-4240-b793-699188cee653",
+      "name": "Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j=$input.first().json;\nconst fail=(m)=>[{json:{success:false,error:m}}];\nif(!j.message||!j.message.content){return fail('Yapay zeka yanit veremedi.');}\nlet d;try{d=JSON.parse(j.message.content);}catch(e){return fail('Yapay zeka gecerli test uretemedi. Tekrar deneyin.');}\nconst qs=Array.isArray(d.questions)?d.questions:[];\nconst ok=qs.filter(q=>q&&typeof q.question==='string'&&Array.isArray(q.options)&&q.options.length===4&&q.options.includes(q.correct_answer)&&typeof q.explanation==='string');\nif(ok.length<5){return fail('Yeterli sayida gecerli soru uretilemedi. Tekrar deneyin.');}\nreturn [{json:{success:true,questions:ok}}];"
+      },
+      "id": "00ca38bd-9d15-4fae-bc10-a0a375f3c218",
+      "name": "JSON Dogrula",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "57db6d08-25c1-4e91-b404-0152c085bbb5",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Istek Hazirla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Istek Hazirla": {
+      "main": [
+        [
+          {
+            "node": "Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama": {
+      "main": [
+        [
+          {
+            "node": "JSON Dogrula",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Dogrula": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

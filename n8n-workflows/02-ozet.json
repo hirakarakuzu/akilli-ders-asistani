@@ -1,0 +1,131 @@
+{
+  "name": "Ders Notu Ozetleme",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ozet",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "63786994-899c-4428-a912-371a7efdaf8b",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "17a44e62-885e-4e2a-ac32-7fc2040de0fc"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text=($input.first().json.body||{}).text;\nif(!text||!String(text).trim()){return [{json:{success:false,error:'Ders notu bos olamaz.',skip:true}}];}\nreturn [{json:{ollamaBody:{model:'qwen2.5:7b',stream:false,messages:[\n{role:'system',content:'Sen bir universite egitim asistanisin. Verilen ders notunu Turkce ozetle. Sadece metindeki bilgileri kullan, disaridan bilgi ekleme. Once 2-3 cumlelik ozet yaz, sonra Anahtar Noktalar basligi altinda madde madde listele.'},\n{role:'user',content:String(text)}]}}}];"
+      },
+      "id": "7d3de4e5-6854-49ef-8910-258b7a53972e",
+      "name": "Istek Hazirla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.ollamaBody) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "c0a41243-cd90-472c-bb60-bd7ffd9960e9",
+      "name": "Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j=$input.first().json;\nif(!j.message||!j.message.content){return [{json:{success:false,error:'Yapay zeka yanit veremedi.'}}];}\nreturn [{json:{success:true,summary:j.message.content}}];"
+      },
+      "id": "9e3544bc-03a2-492c-9221-750a9d0a5f82",
+      "name": "Yanit Isle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "ef88d645-c888-4da1-979d-38aef0307c40",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Istek Hazirla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Istek Hazirla": {
+      "main": [
+        [
+          {
+            "node": "Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama": {
+      "main": [
+        [
+          {
+            "node": "Yanit Isle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yanit Isle": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

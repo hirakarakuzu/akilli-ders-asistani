@@ -1,0 +1,131 @@
+{
+  "name": "Performans Degerlendirme",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "performans",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8ce81c0b-8459-4dd0-8c46-e9f3eb6fa575",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "3172e227-6074-4a84-9d86-83d40e92c755"
+    },
+    {
+      "parameters": {
+        "jsCode": "const qs=(($input.first().json.body||{}).questions)||[];\nif(!Array.isArray(qs)||qs.length===0){return [{json:{success:false,error:'Cevap verisi bos.'}}];}\nlet correct=0;const wrong=[];\nfor(const q of qs){if(q.user_answer===q.correct_answer){correct++;}else{wrong.push({question:q.question,topic:q.topic||'Genel',your_answer:q.user_answer,correct_answer:q.correct_answer});}}\nconst total=qs.length;const pct=Math.round(correct/total*100);\nconst topics=[...new Set(wrong.map(w=>w.topic))];\nconst stats={success:true,total,correct,wrong:total-correct,percentage:pct,weak_topics:topics,wrong_questions:wrong};\nconst info='Toplam: '+total+', Dogru: '+correct+', Yuzde: %'+pct+'. Yanlis yapilan konular: '+(topics.join(', ')||'yok')+'. Yanlis sorular: '+wrong.map(w=>w.question).join(' | ');\nconst sys='Sen bir universite egitim kocusun. Ogrencinin test sonucuna gore Turkce, kisa ve somut calisma onerileri ver. Once eksik konulari kisaca analiz et, sonra madde madde 3-5 calisma onerisi yaz.';\nreturn [{json:{stats,ollamaBody:{model:'qwen2.5:7b',stream:false,messages:[{role:'system',content:sys},{role:'user',content:info}]}}}];"
+      },
+      "id": "effcf8bf-4faf-4473-9536-4d59405d0680",
+      "name": "Hesapla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.ollamaBody) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "b9845828-a091-48ac-944f-d42f0534251c",
+      "name": "Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stats=$('Hesapla').first().json.stats;\nconst j=$input.first().json;\nconst rec=(j.message&&j.message.content)?j.message.content:'Oneri uretilemedi.';\nreturn [{json:{...stats,recommendations:rec}}];"
+      },
+      "id": "32bf40d0-3928-4396-b9d6-db90967dacbb",
+      "name": "Yanit Isle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "aca08e0b-4c69-4b51-9fbc-ee73e35e0afa",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Hesapla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hesapla": {
+      "main": [
+        [
+          {
+            "node": "Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama": {
+      "main": [
+        [
+          {
+            "node": "Yanit Isle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yanit Isle": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}
