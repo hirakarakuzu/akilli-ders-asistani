@@ -1,0 +1,95 @@
+{
+  "name": "AI Chat",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        -64
+      ],
+      "id": "447251c7-f0f1-41d7-820d-b9b918c6ea36",
+      "name": "Webhook",
+      "webhookId": "0d878bf6-a822-413a-af30-51ab207627f9"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"reply\": $json.message.content } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        272,
+        -64
+      ],
+      "id": "39bd92ab-5536-43c5-bd46-26fdf3aed398",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"model\": \"qwen2.5:7b\",\n  \"stream\": false,\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"Sen bir üniversite eğitim asistanısın. Öğrencilere açık, anlaşılır ve öğretici cevaplar ver. Türkçe cevap ver.\" },\n    { \"role\": \"user\", \"content\": $('Webhook').item.json.body.message }\n  ]\n} }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        96,
+        -64
+      ],
+      "id": "15d0c700-70b6-447c-a513-c2b74cca5164",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "e780cf24-7546-4826-bd59-28d7219dd29d",
+  "meta": {
+    "instanceId": "ed20d99076d16fb4966e510da023432026d0edcbdf0c7ac0769190f93db757ec"
+  },
+  "nodeGroups": [],
+  "id": "GxQ7MBR2Y7HUutB2",
+  "tags": []
+}
