@@ -3,6 +3,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../api.dart';
 import '../../auth.dart';
+import '../../core/utils/activity.dart';
 import '../../core/widgets/empty_state.dart';
 import '../progress/progress_repo.dart';
 
@@ -94,6 +95,7 @@ class _CoachPageState extends State<CoachPage> {
         '${_profile(d)}\nÖğrencinin sorusu: $question';
     try {
       final reply = await Api.chat(prompt);
+      await ActivityLog.add(Session.userId, 60, 'koc');
       final p = await SharedPreferences.getInstance();
       final now = DateTime.now();
       final date = '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year}';

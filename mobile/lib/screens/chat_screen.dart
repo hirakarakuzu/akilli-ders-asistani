@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../api.dart';
+import '../auth.dart';
+import '../core/utils/activity.dart';
 import '../core/theme/app_colors.dart';
 import '../core/utils/chat_context.dart';
 import '../core/utils/default_subjects.dart';
@@ -73,6 +75,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final first = msgs.isEmpty;
       _ctrl.clear();
       await Repo.addMessage(widget.conversationId, 'user', text);
+      await ActivityLog.add(Session.userId, 90, 'sohbet');
       if (first) {
         await Repo.renameConversation(
             widget.conversationId, text.length > 40 ? '${text.substring(0, 40)}...' : text);

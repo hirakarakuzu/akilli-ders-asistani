@@ -29,7 +29,9 @@ class _FlashcardPageState extends State<FlashcardPage> {
 
   Future<void> _reload() async {
     final f = FlashcardDb.decks(_uid);
-    setState(() => _future = f);
+    setState(() {
+      _future = f;
+    });
     await f;
   }
 

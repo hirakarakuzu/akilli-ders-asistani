@@ -1,6 +1,22 @@
 {
-  "name": "Otomatik Test Olusturma",
+  "name": "03 · Test Oluşturma",
   "nodes": [
+    {
+      "parameters": {
+        "content": "## ❓ Test Oluşturma\n**Notlar → Test oluştur** ve **Araçlar → Sınav Simülasyonu** bu akışı kullanır.\n\n**Adres:** `POST /webhook/test-olustur`\n**Gelen:** `{ \"text\": \"ders notu\" }`\n**Dönen:** `{ \"success\": true, \"questions\": [ {question, topic, options[4], correct_answer, explanation} ] }`\n\n*Yanıtı İşle* adımı her soruyu kontrol eder: 4 seçenek, doğru cevap seçeneklerden biri olmalı. En az 5 geçerli soru yoksa hata döner.",
+        "height": 300,
+        "width": 1300,
+        "color": 6
+      },
+      "id": "e5f65fe9-e5d7-4c68-b566-62f36fa8d060",
+      "name": "Açıklama",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -380
+      ]
+    },
     {
       "parameters": {
         "httpMethod": "POST",
@@ -8,26 +24,59 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "67f1dc54-4afc-4aa6-9233-151fe9edbae8",
-      "name": "Webhook",
+      "id": "654785b3-c5e6-486f-b58f-3c972df389c5",
+      "name": "Uygulamadan İstek",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
         0,
         0
       ],
-      "webhookId": "b401451b-8bcd-4155-94b6-0dad7718cbd9"
+      "webhookId": "9f967d8d-850a-4162-b9c7-b3cc34ebe891"
     },
     {
       "parameters": {
-        "jsCode": "const text=($input.first().json.body||{}).text;\nif(!text||!String(text).trim()){return [{json:{success:false,error:'Ders notu bos olamaz.'}}];}\nconst sys='Sen bir universite sinav hazirlama asistanisin. Verilen ders notundan TAM 5 adet coktan secmeli soru uret. Sorular sadece nottaki bilgilere dayansin. Her soruda 4 secenek olsun ve yalnizca biri dogru olsun. correct_answer degeri options listesindeki bir secenekle birebir ayni olmali. Sadece su JSON yapisini dondur: {\"questions\":[{\"question\":\"...\",\"topic\":\"kisa konu basligi\",\"options\":[\"...\",\"...\",\"...\",\"...\"],\"correct_answer\":\"...\",\"explanation\":\"...\"}]}';\nreturn [{json:{ollamaBody:{model:'qwen2.5:7b',stream:false,format:'json',options:{temperature:0.3,num_ctx:8192},messages:[{role:'system',content:sys},{role:'user',content:String(text)}]}}}];"
+        "jsCode": "const text=($input.first().json.body||{}).text;\nif(!text||!String(text).trim()){return [{json:{valid:false,error:'Ders notu bos olamaz.'}}];}\nconst sys='Sen bir universite sinav hazirlama asistanisin. Verilen ders notundan TAM 5 adet coktan secmeli soru uret. Sorular sadece nottaki bilgilere dayansin. Her soruda 4 secenek olsun ve yalnizca biri dogru olsun. correct_answer degeri options listesindeki bir secenekle birebir ayni olmali. Sadece su JSON yapisini dondur: {\"questions\":[{\"question\":\"...\",\"topic\":\"kisa konu basligi\",\"options\":[\"...\",\"...\",\"...\",\"...\"],\"correct_answer\":\"...\",\"explanation\":\"...\"}]}';\nreturn [{json:{valid:true,ollamaBody:{model:'qwen2.5:7b',stream:false,format:'json',options:{temperature:0.3,num_ctx:8192},messages:[{role:'system',content:sys},{role:'user',content:String(text)}]}}}];"
       },
-      "id": "4071d497-2c46-4767-9b2f-1ece5ba4cbdd",
-      "name": "Istek Hazirla",
+      "id": "7e79fdd8-1a85-4160-8f47-ad4ffdc4a3b3",
+      "name": "İsteği Doğrula",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "60f909b2-cfbf-4e54-accf-bcd2d6119efe",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "df7aab62-a99b-41d3-9665-ff0d27f97b5b",
+      "name": "Geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        480,
         0
       ]
     },
@@ -40,29 +89,30 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.ollamaBody) }}",
         "options": {
-          "timeout": 180000
+          "timeout": 200000
         }
       },
-      "id": "b2d3bb91-8083-4240-b793-699188cee653",
-      "name": "Ollama",
+      "id": "78266567-d563-4d91-9f53-3444fbb765e0",
+      "name": "Ollama (qwen2.5)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        480,
-        0
-      ]
+        720,
+        -60
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
-        "jsCode": "const j=$input.first().json;\nconst fail=(m)=>[{json:{success:false,error:m}}];\nif(!j.message||!j.message.content){return fail('Yapay zeka yanit veremedi.');}\nlet d;try{d=JSON.parse(j.message.content);}catch(e){return fail('Yapay zeka gecerli test uretemedi. Tekrar deneyin.');}\nconst qs=Array.isArray(d.questions)?d.questions:[];\nconst ok=qs.filter(q=>q&&typeof q.question==='string'&&Array.isArray(q.options)&&q.options.length===4&&q.options.includes(q.correct_answer)&&typeof q.explanation==='string');\nif(ok.length<5){return fail('Yeterli sayida gecerli soru uretilemedi. Tekrar deneyin.');}\nreturn [{json:{success:true,questions:ok}}];"
+        "jsCode": "const j=$input.first().json;\nconst fail=(m)=>[{json:{success:false,error:m}}];\nif(!j.message||!j.message.content){return fail('Yapay zeka yanit veremedi.');}\nlet d;try{d=JSON.parse(j.message.content);}catch(e){return fail('Yapay zeka gecerli test uretemedi. Tekrar deneyin.');}\nconst qs=Array.isArray(d.questions)?d.questions:[];\nconst ok=qs.filter(q=>q&&typeof q.question==='string'&&Array.isArray(q.options)&&q.options.length===4&&new Set(q.options).size===4&&q.options.includes(q.correct_answer)&&typeof q.explanation==='string');\nif(ok.length<5){return fail('Yeterli sayida gecerli soru uretilemedi. Tekrar deneyin.');}\nreturn [{json:{success:true,questions:ok}}];"
       },
-      "id": "00ca38bd-9d15-4fae-bc10-a0a375f3c218",
-      "name": "JSON Dogrula",
+      "id": "77f34cf6-7d40-453f-b941-fd5d9557649f",
+      "name": "Yanıtı İşle",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        720,
-        0
+        980,
+        -60
       ]
     },
     {
@@ -71,55 +121,135 @@
         "responseBody": "={{ $json }}",
         "options": {}
       },
-      "id": "57db6d08-25c1-4e91-b404-0152c085bbb5",
-      "name": "Respond to Webhook",
+      "id": "ace1ffa5-4d01-4345-aa6c-805d972595a8",
+      "name": "Uygulamaya Yanıt",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        960,
-        0
+        1220,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{success:false,error:'Yapay zeka servisine ulasilamadi. Ollama konteynerinin calistigindan emin olun.'}}];"
+      },
+      "id": "b00cf4e3-dc3e-4086-a808-d697f56cd37e",
+      "name": "Ollama Hatası",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: $json.error || 'Yapay zeka servisine ulasilamadi. Ollama calisiyor mu?' } }}",
+        "options": {}
+      },
+      "id": "5c52c60c-317f-466b-92aa-5f032f0565d6",
+      "name": "Hata Yanıtı",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1220,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Hata yolu\nİstek geçersizse ya da Ollama yanıt vermezse uygulamaya **success:false** ve Türkçe bir hata mesajı döner. Uygulama bu mesajı kullanıcıya gösterir.",
+        "height": 170,
+        "width": 520,
+        "color": 7
+      },
+      "id": "9f6777af-050e-4acf-bc53-1574c34bb33e",
+      "name": "Not: Hatalar",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        440,
+        260
       ]
     }
   ],
   "connections": {
-    "Webhook": {
+    "Uygulamadan İstek": {
       "main": [
         [
           {
-            "node": "Istek Hazirla",
+            "node": "İsteği Doğrula",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Istek Hazirla": {
+    "İsteği Doğrula": {
       "main": [
         [
           {
-            "node": "Ollama",
+            "node": "Geçerli mi?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Ollama": {
+    "Geçerli mi?": {
       "main": [
         [
           {
-            "node": "JSON Dogrula",
+            "node": "Ollama (qwen2.5)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hata Yanıtı",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "JSON Dogrula": {
+    "Ollama (qwen2.5)": {
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "Yanıtı İşle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama Hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yanıtı İşle": {
+      "main": [
+        [
+          {
+            "node": "Uygulamaya Yanıt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Hatası": {
+      "main": [
+        [
+          {
+            "node": "Hata Yanıtı",
             "type": "main",
             "index": 0
           }
@@ -127,5 +257,8 @@
       ]
     }
   },
-  "settings": {}
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
 }

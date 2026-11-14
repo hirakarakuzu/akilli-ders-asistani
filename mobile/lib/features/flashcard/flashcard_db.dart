@@ -1,4 +1,6 @@
 import 'package:sqflite/sqflite.dart';
+import '../../auth.dart';
+import '../../core/utils/activity.dart';
 import '../../db.dart';
 
 /// Flashcard verileri. Mevcut db.dart'a dokunmaz; tablolar ilk kullanımda
@@ -159,6 +161,7 @@ class FlashcardDb {
       '${known ? 'known_count' : 'unknown_count'} + 1 WHERE id = ?',
       [box, due, _now(), c.id],
     );
+    await ActivityLog.add(Session.userId, 30, 'flashcard');
   }
 
   static Future<void> resetDeck(int deckId) async {

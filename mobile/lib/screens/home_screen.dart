@@ -12,6 +12,7 @@ import '../widgets.dart' hide EmptyState;
 import 'chat_screen.dart';
 import 'flows.dart';
 import 'quiz_screen.dart';
+import '../core/utils/activity.dart';
 import '../core/utils/default_subjects.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -29,8 +30,10 @@ class _HomeScreenState extends State<HomeScreen> {
   List<DbRow> tests = [];
   Map<String, int> stats = {'results': 0, 'avg': 0, 'notes': 0, 'chats': 0};
 
-  // Henüz veritabanında karşılığı yok; çalışma süresi takibi eklenince doldurulacak.
+  // Çalışma kaydından (ActivityLog) doldurulur.
   int todayMinutes = 0;
+  int totalMinutes = 0;
+  List<int> weekMinutes = const [0, 0, 0, 0, 0, 0, 0];
   int goalMinutes = 60;
   int streak = 0;
   List<double> weekly = const [0, 0, 0, 0, 0, 0, 0];
@@ -48,8 +51,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final c = await Repo.conversations(uid, limit: 3);
     final t = await Repo.tests(uid, limit: 3);
     final st = await Repo.stats(uid);
+    final act = await ActivityLog.summary(uid);
     if (!mounted) return;
     setState(() {
+      todayMinutes = act.todayMinutes;
+      goalMinutes = act.goalMinutes;
+      streak = act.streak;
+      totalMinutes = act.totalMinutes;
+      weekMinutes = act.weekMinutes;
+      weekly = [
+        for (final m in act.weekMinutes)
+          act.goalMinutes == 0 ? 0.0 : (m * 100 / act.goalMinutes).clamp(0, 100).toDouble()
+      ];
       subjects = s;
       chats = c;
       tests = t;
@@ -59,7 +72,32 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Çözülen testlerden türetilen basit XP / seviye.
-  int get xp => (stats['results'] ?? 0) * 10;
+  int get xp => (stats['results'] ?? 0) * 10 + totalMinutes;
+
+  Future<void> _editGoal() async {
+    const options = [15, 30, 45, 60, 90, 120, 180];
+    final picked = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text('Günlük hedefin', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          ),
+          for (final m in options)
+            ListTile(
+              leading: Icon(m == goalMinutes ? Icons.radio_button_checked : Icons.radio_button_unchecked),
+              title: Text('$m dakika'),
+              onTap: () => Navigator.pop(c, m),
+            ),
+        ]),
+      ),
+    );
+    if (picked == null) return;
+    await ActivityLog.setGoal(Session.userId!, picked);
+    _load();
+  }
   int get level => xp ~/ 100 + 1;
 
   String get suggestion {
@@ -128,6 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Günlük hedef
                 _section('Günlük hedef'),
                 AppCard(
+                  onTap: _editGoal,
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       Text('$todayMinutes / $goalMinutes dk', style: tt.titleMedium),
@@ -144,13 +183,31 @@ class _HomeScreenState extends State<HomeScreen> {
                       InfoPill(icon: Icons.local_fire_department_outlined, text: '$streak gün seri'),
                       const SizedBox(width: 8),
                       InfoPill(icon: Icons.bolt, text: '$xp XP · Sv.$level'),
+                      const Spacer(),
+                      Icon(Icons.edit_outlined, size: 18, color: cs.onSurfaceVariant),
                     ]),
+                    const SizedBox(height: 8),
+                    Text(
+                      todayMinutes >= goalMinutes
+                          ? 'Bugünkü hedefini tamamladın!'
+                          : 'Test, flashcard, sohbet ve plan oturumların süreye eklenir.',
+                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                    ),
                   ]),
                 ),
 
                 // Haftalık grafik
-                _section('Haftalık başarı'),
-                AppCard(child: WeeklyBars(values: weekly)),
+                _section('Bu haftaki çalışman'),
+                AppCard(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(
+                      'Toplam ${weekMinutes.fold<int>(0, (a, b) => a + b)} dk · çubuklar günlük hedefe göre',
+                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 12),
+                    WeeklyBars(values: weekly),
+                  ]),
+                ),
 
                 // Günün önerisi
                 _section('Günün önerisi'),

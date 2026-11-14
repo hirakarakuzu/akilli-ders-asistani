@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import 'models.dart';
+import 'core/utils/activity.dart';
 
 typedef DbRow = Map<String, Object?>;
 
@@ -163,15 +164,18 @@ class Repo {
         [uid]);
   }
 
-  static Future<int> addNote(int uid, int? subjectId, String title, String content) async {
+  static Future<int> addNote(int uid, int? subjectId, String title, String content,
+      {bool logActivity = true}) async {
     final d = await AppDb.instance;
-    return d.insert('study_notes', {
+    final id = await d.insert('study_notes', {
       'user_id': uid,
       'subject_id': subjectId,
       'title': title,
       'content': content,
       'created_at': _now(),
     });
+    if (logActivity) await ActivityLog.add(uid, 300, 'not');
+    return id;
   }
 
   static Future<void> deleteNote(int uid, int id) async {
@@ -254,6 +258,7 @@ class Repo {
       'content': recommendations,
       'created_at': _now(),
     });
+    await ActivityLog.add(uid, (total * 90).clamp(300, 3600).toInt(), 'test');
   }
 
   static Future<Map<String, int>> stats(int uid) async {

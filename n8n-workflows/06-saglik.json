@@ -1,0 +1,153 @@
+{
+  "name": "06 · Sağlık Kontrolü",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## ✅ Sağlık Kontrolü\nSistemin çalışıp çalışmadığını tek adımda gösterir.\n\nTarayıcıda aç: **http://localhost:5678/webhook/saglik**\n\nDönen: n8n durumu, Ollama'ya erişilip erişilemediği ve yüklü modeller.",
+        "height": 260,
+        "width": 900,
+        "color": 4
+      },
+      "id": "315f0f89-38b0-4979-a6b2-a6cf98a010f8",
+      "name": "Açıklama",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -340
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "saglik",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c1215b43-6f08-4f39-b75e-19dc3c2d97cd",
+      "name": "Uygulamadan İstek",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "494def76-7fa2-42fa-a096-c1ffebdc1d55"
+    },
+    {
+      "parameters": {
+        "url": "http://ollama:11434/api/tags",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "fdc8db7d-a016-480b-bcb5-73f82a345d7e",
+      "name": "Ollama Modelleri",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j=$input.first().json;\nconst models=(j.models||[]).map(m=>m.name);\nreturn [{json:{success:true,n8n:'calisiyor',ollama:'calisiyor',modeller:models,gerekli_model:'qwen2.5:7b',model_yuklu:models.includes('qwen2.5:7b'),zaman:new Date().toISOString()}}];"
+      },
+      "id": "499e1192-0bc3-4b93-8ec9-205a6b421d1a",
+      "name": "Durum Raporu",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{success:false,n8n:'calisiyor',ollama:'ulasilamiyor',zaman:new Date().toISOString()}}];"
+      },
+      "id": "9d63b8e3-26e5-4a9f-bf7b-3cbe0d0d4e54",
+      "name": "Ollama Kapalı",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "d0128678-7ab3-4c51-ad85-24cbd1de3a30",
+      "name": "Uygulamaya Yanıt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        40
+      ]
+    }
+  ],
+  "connections": {
+    "Uygulamadan İstek": {
+      "main": [
+        [
+          {
+            "node": "Ollama Modelleri",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Modelleri": {
+      "main": [
+        [
+          {
+            "node": "Durum Raporu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama Kapalı",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Durum Raporu": {
+      "main": [
+        [
+          {
+            "node": "Uygulamaya Yanıt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Kapalı": {
+      "main": [
+        [
+          {
+            "node": "Uygulamaya Yanıt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

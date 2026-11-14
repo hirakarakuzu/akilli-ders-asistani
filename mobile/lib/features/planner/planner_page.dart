@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../auth.dart';
+import '../../core/utils/activity.dart';
 import '../../db.dart';
 import '../progress/progress_repo.dart';
 
@@ -168,8 +169,10 @@ class _PlannerPageState extends State<PlannerPage> {
   }
 
   Future<void> _toggle(PlanItem i, bool v) async {
+    if (i.done == v) return;
     setState(() => i.done = v);
     await PlanStore.save(_plan!);
+    await ActivityLog.add(Session.userId, (v ? 1 : -1) * i.minutes * 60, 'plan');
   }
 
   @override

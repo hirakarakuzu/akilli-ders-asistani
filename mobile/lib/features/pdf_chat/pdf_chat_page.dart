@@ -6,6 +6,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../../api.dart';
 import '../../auth.dart';
+import '../../core/utils/activity.dart';
 import '../../db.dart';
 import '../../core/widgets/empty_state.dart';
 
@@ -161,6 +162,7 @@ class _PdfChatPageState extends State<PdfChatPage> {
         'BELGE ($_name):\n${_context(q)}\n\nSORU: $q';
     try {
       final reply = await Api.chat(prompt);
+      await ActivityLog.add(Session.userId, 90, 'pdf');
       if (!mounted) return;
       setState(() => _msgs.add(_Msg(false, reply)));
     } on ApiException catch (e) {

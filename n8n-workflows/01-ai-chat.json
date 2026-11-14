@@ -1,6 +1,22 @@
 {
-  "name": "AI Chat",
+  "name": "01 · AI Sohbet",
   "nodes": [
+    {
+      "parameters": {
+        "content": "## 💬 AI Sohbet\nUygulamadaki **Sohbet**, **AI Koç** ve **PDF ile Konuş** ekranları bu akışı kullanır.\n\n**Adres:** `POST /webhook/chat`\n**Gelen:** `{ \"message\": \"...\" }` → uygulama mesaja ders adını, ilgili ders notlarını ve önceki mesajları ekleyerek gönderir.\n**Dönen:** `{ \"success\": true, \"reply\": \"...\" }`\n\nModel: `qwen2.5:7b` · bağlam penceresi 8192 token",
+        "height": 300,
+        "width": 1300,
+        "color": 4
+      },
+      "id": "978765a7-ee68-4bcd-b3f7-7a9597f7f8c5",
+      "name": "Açıklama",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -380
+      ]
+    },
     {
       "parameters": {
         "httpMethod": "POST",
@@ -8,70 +24,232 @@
         "responseMode": "responseNode",
         "options": {}
       },
+      "id": "0ff9b73c-11cd-4701-98c8-1aed796fe1a8",
+      "name": "Uygulamadan İstek",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.2,
+      "typeVersion": 2,
       "position": [
-        -160,
-        -64
+        0,
+        0
       ],
-      "id": "447251c7-f0f1-41d7-820d-b9b918c6ea36",
-      "name": "Webhook",
-      "webhookId": "0d878bf6-a822-413a-af30-51ab207627f9"
+      "webhookId": "a6cbab24-01a8-4a5b-bbdd-e5c814ea738b"
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { \"success\": true, \"reply\": $json.message.content } }}",
+        "jsCode": "const msg=($input.first().json.body||{}).message;\nif(!msg||!String(msg).trim()){return [{json:{valid:false,error:'Mesaj bos olamaz.'}}];}\nconst sys='Sen Turkce konusan, sabirli ve ogretici bir universite egitim asistanisin. Kullanici mesajindaki kurallara, ders bilgisine ve ders notlarina uy. Cevaplarini Markdown ile duzenli yaz.';\nreturn [{json:{valid:true,ollamaBody:{model:'qwen2.5:7b',stream:false,options:{temperature:0.5,num_ctx:8192},messages:[{role:'system',content:sys},{role:'user',content:String(msg)}]}}}];"
+      },
+      "id": "e9664429-e032-420e-b7f6-bcc100622ad2",
+      "name": "İsteği Doğrula",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "fa80880e-e3f1-4770-ab34-ebeec81f2f3a",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
         "options": {}
       },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.5,
+      "id": "eb48f10c-5408-4544-8cb1-e15ed69da6a8",
+      "name": "Geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
       "position": [
-        272,
-        -64
-      ],
-      "id": "39bd92ab-5536-43c5-bd46-26fdf3aed398",
-      "name": "Respond to Webhook"
+        480,
+        0
+      ]
     },
     {
       "parameters": {
         "method": "POST",
         "url": "http://ollama:11434/api/chat",
         "sendBody": true,
+        "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  \"model\": \"qwen2.5:7b\",\n  \"stream\": false,\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"Sen bir üniversite eğitim asistanısın. Öğrencilere açık, anlaşılır ve öğretici cevaplar ver. Türkçe cevap ver.\" },\n    { \"role\": \"user\", \"content\": $('Webhook').item.json.body.message }\n  ]\n} }}",
+        "jsonBody": "={{ JSON.stringify($json.ollamaBody) }}",
         "options": {
-          "timeout": 120000
+          "timeout": 200000
         }
       },
+      "id": "29086b62-d6ca-4279-976d-48e44c587157",
+      "name": "Ollama (qwen2.5)",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
+      "typeVersion": 4.2,
       "position": [
-        96,
-        -64
+        720,
+        -60
       ],
-      "id": "15d0c700-70b6-447c-a513-c2b74cca5164",
-      "name": "HTTP Request"
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j=$input.first().json;\nconst reply=j.message&&j.message.content;\nif(!reply){return [{json:{success:false,error:'Yapay zeka yanit veremedi. Tekrar deneyin.'}}];}\nreturn [{json:{success:true,reply}}];"
+      },
+      "id": "2ebeee35-8fbf-4155-978f-3a694863b014",
+      "name": "Yanıtı İşle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "3eb8f156-0d63-498b-9100-6c595de7f953",
+      "name": "Uygulamaya Yanıt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1220,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{success:false,error:'Yapay zeka servisine ulasilamadi. Ollama konteynerinin calistigindan emin olun.'}}];"
+      },
+      "id": "2b739e6c-d732-46cf-960a-142f289f00fc",
+      "name": "Ollama Hatası",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: $json.error || 'Yapay zeka servisine ulasilamadi. Ollama calisiyor mu?' } }}",
+        "options": {}
+      },
+      "id": "c6ab726e-8c27-44cb-998d-f6004f6fe0d9",
+      "name": "Hata Yanıtı",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1220,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Hata yolu\nİstek geçersizse ya da Ollama yanıt vermezse uygulamaya **success:false** ve Türkçe bir hata mesajı döner. Uygulama bu mesajı kullanıcıya gösterir.",
+        "height": 170,
+        "width": 520,
+        "color": 7
+      },
+      "id": "8d7febea-744d-4e4d-999b-3819dcabf49d",
+      "name": "Not: Hatalar",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        440,
+        260
+      ]
     }
   ],
-  "pinData": {},
   "connections": {
-    "Webhook": {
+    "Uygulamadan İstek": {
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "İsteği Doğrula",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "HTTP Request": {
+    "İsteği Doğrula": {
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "Geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Ollama (qwen2.5)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hata Yanıtı",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama (qwen2.5)": {
+      "main": [
+        [
+          {
+            "node": "Yanıtı İşle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama Hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yanıtı İşle": {
+      "main": [
+        [
+          {
+            "node": "Uygulamaya Yanıt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Hatası": {
+      "main": [
+        [
+          {
+            "node": "Hata Yanıtı",
             "type": "main",
             "index": 0
           }
@@ -79,17 +257,8 @@
       ]
     }
   },
-  "active": true,
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate",
-    "availableInMCP": true
+    "executionOrder": "v1"
   },
-  "versionId": "e780cf24-7546-4826-bd59-28d7219dd29d",
-  "meta": {
-    "instanceId": "ed20d99076d16fb4966e510da023432026d0edcbdf0c7ac0769190f93db757ec"
-  },
-  "nodeGroups": [],
-  "id": "GxQ7MBR2Y7HUutB2",
-  "tags": []
+  "active": false
 }

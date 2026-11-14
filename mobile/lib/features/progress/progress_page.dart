@@ -21,7 +21,9 @@ class _ProgressPageState extends State<ProgressPage> {
 
   Future<void> _reload() async {
     final f = ProgressRepo.load(Session.userId ?? 0);
-    setState(() => _future = f);
+    setState(() {
+      _future = f;
+    });
     await f;
   }
 

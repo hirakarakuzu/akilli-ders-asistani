@@ -1,6 +1,22 @@
 {
-  "name": "Flashcard Olustur",
+  "name": "05 · Flashcard Üretimi",
   "nodes": [
+    {
+      "parameters": {
+        "content": "## 🃏 Flashcard Üretimi\n**Araçlar → Flashcard → Yeni deste** bu akışı kullanır.\n\n**Adres:** `POST /webhook/flashcard-olustur`\n**Gelen:** `{ \"text\": \"ders notu\", \"count\": 10 }`  (count 3-25 arası)\n**Dönen:** `{ \"success\": true, \"cards\": [ {front, back} ] }`\n\nTekrarlanan kartlar elenir; modelin farklı alan adları (soru/cevap) da kabul edilir.",
+        "height": 300,
+        "width": 1300,
+        "color": 2
+      },
+      "id": "6e681e3f-57c4-4b58-bfe2-300f4d25a04a",
+      "name": "Açıklama",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -380
+      ]
+    },
     {
       "parameters": {
         "httpMethod": "POST",
@@ -8,22 +24,22 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "3a574bb8-3643-416c-ba89-86041b8b1893",
-      "name": "Webhook",
+      "id": "fbefb0a6-3cf6-4ecd-8c75-3ae72bd885ca",
+      "name": "Uygulamadan İstek",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
         0,
         0
       ],
-      "webhookId": "46e241f2-731c-4976-9c0d-f4dcdf7297e2"
+      "webhookId": "9a22f0b8-a2fc-4e39-b8a9-0320e8a8734b"
     },
     {
       "parameters": {
-        "jsCode": "const b=($input.first().json.body||{});\nconst text=b.text;\nif(!text||!String(text).trim()){return [{json:{success:false,error:'Ders notu bos olamaz.',skip:true}}];}\nlet count=parseInt(b.count,10); if(!(count>=3&&count<=25)) count=10;\nconst sys='Sen bir universite egitim asistanisin. Verilen ders notundan Turkce bilgi kartlari (flashcard) uret. '+\n'Sadece metindeki bilgileri kullan, disaridan bilgi ekleme. Her kartin on yuzu kisa ve net bir soru veya kavram, '+\n'arka yuzu 1-2 cumlelik dogru cevap olsun. Kartlar birbirini tekrar etmesin. '+\n'Yalnizca su JSON bicimiyle yanit ver: {\"cards\":[{\"front\":\"...\",\"back\":\"...\"}]}';\nreturn [{json:{count, ollamaBody:{model:'qwen2.5:7b',stream:false,format:'json',options:{temperature:0.3},messages:[\n{role:'system',content:sys},\n{role:'user',content:'Tam olarak '+count+' kart uret. Ders notu:\\n\\n'+String(text)}]}}}];"
+        "jsCode": "const b=($input.first().json.body||{});\nconst text=b.text;\nif(!text||!String(text).trim()){return [{json:{valid:false,error:'Ders notu bos olamaz.'}}];}\nlet count=parseInt(b.count,10); if(!(count>=3&&count<=25)) count=10;\nconst sys='Sen bir universite egitim asistanisin. Verilen ders notundan Turkce bilgi kartlari (flashcard) uret. Sadece metindeki bilgileri kullan, disaridan bilgi ekleme. Her kartin on yuzu kisa ve net bir soru veya kavram, arka yuzu 1-2 cumlelik dogru cevap olsun. Kartlar birbirini tekrar etmesin. Yalnizca su JSON bicimiyle yanit ver: {\"cards\":[{\"front\":\"...\",\"back\":\"...\"}]}';\nreturn [{json:{valid:true,ollamaBody:{model:'qwen2.5:7b',stream:false,format:'json',options:{temperature:0.3,num_ctx:8192},messages:[{role:'system',content:sys},{role:'user',content:'Tam olarak '+count+' kart uret. Ders notu:\\n\\n'+String(text)}]}}}];"
       },
-      "id": "5f70c441-fb7d-4a31-8b4f-b583d195ca43",
-      "name": "Istek Hazirla",
+      "id": "20fdfe22-ea05-42f3-991f-f9469782da57",
+      "name": "İsteği Doğrula",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -41,8 +57,8 @@
           },
           "conditions": [
             {
-              "id": "bedd34e8-79d8-4858-83aa-0ebcce4ac7f6",
-              "leftValue": "={{ $json.skip === true }}",
+              "id": "31b84ab9-9967-45c1-8ae8-1fef327adc93",
+              "leftValue": "={{ $json.valid }}",
               "rightValue": true,
               "operator": {
                 "type": "boolean",
@@ -55,8 +71,8 @@
         },
         "options": {}
       },
-      "id": "b56b583e-4b71-4f3d-955a-d14f6e078901",
-      "name": "Bos mu",
+      "id": "f8d0e339-b7dd-45ab-a217-6cb18c3bbfb0",
+      "name": "Geçerli mi?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
@@ -76,26 +92,27 @@
           "timeout": 200000
         }
       },
-      "id": "cecc71a1-fc3f-44cf-b84d-fac0f2cf0474",
-      "name": "Ollama",
+      "id": "c30fcec0-e948-404b-b9ff-be49c7d68632",
+      "name": "Ollama (qwen2.5)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         720,
-        100
-      ]
+        -60
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
-        "jsCode": "const j=$input.first().json;\nconst raw=j.message&&j.message.content;\nif(!raw){return [{json:{success:false,error:'Yapay zeka yanit veremedi.'}}];}\nlet data;\ntry{data=JSON.parse(raw);}catch(e){\n  const m=String(raw).match(/\\{[\\s\\S]*\\}/);\n  try{data=m?JSON.parse(m[0]):null;}catch(e2){data=null;}\n}\nlet list=Array.isArray(data)?data:(data&&(data.cards||data.flashcards||data.kartlar));\nif(!Array.isArray(list)){return [{json:{success:false,error:'Kartlar okunamadi. Tekrar deneyin.'}}];}\nconst seen=new Set();\nconst cards=[];\nfor(const c of list){\n  if(!c||typeof c!=='object') continue;\n  const f=String(c.front||c.soru||c.question||'').trim();\n  const bk=String(c.back||c.cevap||c.answer||'').trim();\n  if(!f||!bk||seen.has(f.toLowerCase())) continue;\n  seen.add(f.toLowerCase());\n  cards.push({front:f,back:bk});\n}\nif(cards.length<3){return [{json:{success:false,error:'Yeterli kart uretilemedi. Daha uzun bir not ile deneyin.'}}];}\nreturn [{json:{success:true,cards}}];"
+        "jsCode": "const j=$input.first().json;\nconst raw=j.message&&j.message.content;\nif(!raw){return [{json:{success:false,error:'Yapay zeka yanit veremedi.'}}];}\nlet data;\ntry{data=JSON.parse(raw);}catch(e){const m=String(raw).match(/\\{[\\s\\S]*\\}/);try{data=m?JSON.parse(m[0]):null;}catch(e2){data=null;}}\nconst list=Array.isArray(data)?data:(data&&(data.cards||data.flashcards||data.kartlar));\nif(!Array.isArray(list)){return [{json:{success:false,error:'Kartlar okunamadi. Tekrar deneyin.'}}];}\nconst seen=new Set();const cards=[];\nfor(const c of list){\n  if(!c||typeof c!=='object') continue;\n  const f=String(c.front||c.soru||c.question||'').trim();\n  const bk=String(c.back||c.cevap||c.answer||'').trim();\n  if(!f||!bk||seen.has(f.toLowerCase())) continue;\n  seen.add(f.toLowerCase());cards.push({front:f,back:bk});\n}\nif(cards.length<3){return [{json:{success:false,error:'Yeterli kart uretilemedi. Daha uzun bir not ile deneyin.'}}];}\nreturn [{json:{success:true,cards}}];"
       },
-      "id": "b4786b20-5919-4363-814b-276c4f008532",
-      "name": "Kartlari Ayikla",
+      "id": "1a06fc33-78d4-46d2-af9b-7dcf41f0510a",
+      "name": "Yanıtı İşle",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        960,
-        100
+        980,
+        -60
       ]
     },
     {
@@ -104,73 +121,135 @@
         "responseBody": "={{ $json }}",
         "options": {}
       },
-      "id": "e27cf119-625c-4992-bfae-bb8ca12e2e4b",
-      "name": "Respond to Webhook",
+      "id": "854d5c04-dfaf-4272-a2a6-d9f52339b999",
+      "name": "Uygulamaya Yanıt",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1200,
-        0
+        1220,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{success:false,error:'Yapay zeka servisine ulasilamadi. Ollama konteynerinin calistigindan emin olun.'}}];"
+      },
+      "id": "7f2c2376-9bd8-4757-9cf9-dfa6ae1cffcb",
+      "name": "Ollama Hatası",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: $json.error || 'Yapay zeka servisine ulasilamadi. Ollama calisiyor mu?' } }}",
+        "options": {}
+      },
+      "id": "f367e4f4-b943-4b69-b22e-0faba1d2d222",
+      "name": "Hata Yanıtı",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1220,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Hata yolu\nİstek geçersizse ya da Ollama yanıt vermezse uygulamaya **success:false** ve Türkçe bir hata mesajı döner. Uygulama bu mesajı kullanıcıya gösterir.",
+        "height": 170,
+        "width": 520,
+        "color": 7
+      },
+      "id": "9e3bcd25-710b-40fc-ba65-b826558b0fa3",
+      "name": "Not: Hatalar",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        440,
+        260
       ]
     }
   ],
   "connections": {
-    "Webhook": {
+    "Uygulamadan İstek": {
       "main": [
         [
           {
-            "node": "Istek Hazirla",
+            "node": "İsteği Doğrula",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Istek Hazirla": {
+    "İsteği Doğrula": {
       "main": [
         [
           {
-            "node": "Bos mu",
+            "node": "Geçerli mi?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Bos mu": {
+    "Geçerli mi?": {
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "Ollama (qwen2.5)",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Ollama",
+            "node": "Hata Yanıtı",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Ollama": {
+    "Ollama (qwen2.5)": {
       "main": [
         [
           {
-            "node": "Kartlari Ayikla",
+            "node": "Yanıtı İşle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama Hatası",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Kartlari Ayikla": {
+    "Yanıtı İşle": {
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "Uygulamaya Yanıt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Hatası": {
+      "main": [
+        [
+          {
+            "node": "Hata Yanıtı",
             "type": "main",
             "index": 0
           }
@@ -178,5 +257,8 @@
       ]
     }
   },
-  "settings": {}
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
 }

@@ -65,7 +65,7 @@ Future<void> _ensureDefaultNotes(int uid, SharedPreferences prefs) async {
     final name = ((s['name'] as String?) ?? '').trim().toLowerCase();
     final note = defaultNotes[name];
     if (note == null || withNotes.contains(s['id'])) continue;
-    await Repo.addNote(uid, s['id'] as int, note.$1, note.$2);
+    await Repo.addNote(uid, s['id'] as int, note.$1, note.$2, logActivity: false);
   }
   await prefs.setBool(key, true);
 }
