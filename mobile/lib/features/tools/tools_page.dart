@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/brand.dart';
 import '../coach/coach_page.dart';
 import '../exam/exam_page.dart';
 import '../flashcard/flashcard_page.dart';
@@ -65,10 +67,7 @@ class ToolsPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    CircleAvatar(
-                      backgroundColor: cs.primaryContainer,
-                      child: Icon(t.icon, color: cs.onPrimaryContainer),
-                    ),
+                    PastelIcon(icon: t.icon, color: AppColors.pastels[i % AppColors.pastels.length]),
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(t.title, style: Theme.of(context).textTheme.titleMedium),
                       Text(t.subtitle,

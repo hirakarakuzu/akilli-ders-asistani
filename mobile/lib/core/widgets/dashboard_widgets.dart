@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 class InfoPill extends StatelessWidget {
   const InfoPill({super.key, required this.icon, required this.text});
@@ -42,10 +43,10 @@ class WeeklyBars extends StatelessWidget {
                   duration: const Duration(milliseconds: 600),
                   curve: Curves.easeOutCubic,
                   builder: (_, v, __) => Container(
-                    width: 18,
+                    width: 22,
                     height: 4 + 76 * v,
                     decoration: BoxDecoration(
-                      color: v == 0 ? cs.surfaceContainerHigh : cs.secondary,
+                      color: v == 0 ? cs.surfaceContainerHigh : AppColors.pastels[i % AppColors.pastels.length],
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),

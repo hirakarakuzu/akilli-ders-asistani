@@ -3,6 +3,7 @@ import '../auth.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/theme_controller.dart';
 import '../core/utils/text_utils.dart';
+import '../core/widgets/brand.dart';
 import '../core/widgets/dashboard_widgets.dart';
 import '../core/widgets/empty_state.dart';
 import '../core/widgets/profile_menu.dart';
@@ -119,13 +120,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final isDark = cs.brightness == Brightness.dark;
     final goal = goalMinutes == 0 ? 0.0 : (todayMinutes / goalMinutes).clamp(0.0, 1.0);
     final name = Session.userName?.isNotEmpty == true ? toTitleCaseTr(Session.userName!) : 'Öğrenci';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ana sayfa'),
+        title: const BrandMark(size: 34),
         actions: [
           ProfileMenu(themeController: themeController, onLogout: widget.onLogout),
           const SizedBox(width: 8),
@@ -137,30 +137,47 @@ class _HomeScreenState extends State<HomeScreen> {
               onRefresh: _load,
               child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
                 // Karşılama
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: isDark ? AppColors.brandGradientDark : AppColors.brandGradient,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: .25), blurRadius: 18, offset: const Offset(0, 8))],
-                  ),
+                HeroCard(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Hoş geldin,', style: tt.bodyMedium?.copyWith(color: AppColors.ice)),
-                    const SizedBox(height: 4),
-                    Text(name, style: tt.headlineSmall?.copyWith(color: AppColors.white, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    Text('Bugün ne çalışmak istersin?', style: tt.bodyMedium?.copyWith(color: AppColors.ice)),
+                    SoftBadge(
+                      text: streak > 0 ? '$streak gün seri 🔥' : 'Bugün yeni bir başlangıç',
+                      color: AppColors.coral,
+                    ),
+                    const SizedBox(height: 14),
+                    Text('Merhaba, $name 👋', style: tt.headlineSmall),
+                    const SizedBox(height: 6),
+                    Text('Bugün ne öğrenmek istersin?',
+                        style: tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 18),
+                    Row(children: [
+                      Expanded(
+                        child: GradientButton(
+                          icon: Icons.auto_awesome,
+                          onPressed: () async {
+                            await startNewChat(context);
+                            _load();
+                          },
+                          child: const Text('Asistana sor'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      OutlinedButton(
+                        onPressed: () => widget.goTo(4),
+                        style: OutlinedButton.styleFrom(backgroundColor: cs.surfaceContainerLow),
+                        child: const Text('Araçlar'),
+                      ),
+                    ]),
                   ]),
                 ),
                 const SizedBox(height: 16),
 
                 // İstatistikler
                 Row(children: [
-                  Expanded(child: StatCard(icon: Icons.emoji_events_outlined, value: '%${stats['avg']}', label: 'Başarı oranı')),
+                  Expanded(child: StatCard(icon: Icons.emoji_events_outlined, value: '%${stats['avg']}', label: 'Başarı', color: AppColors.amber)),
                   const SizedBox(width: 10),
-                  Expanded(child: StatCard(icon: Icons.quiz_outlined, value: '${stats['results']}', label: 'Çözülen test')),
+                  Expanded(child: StatCard(icon: Icons.quiz_outlined, value: '${stats['results']}', label: 'Test', color: AppColors.sky)),
                   const SizedBox(width: 10),
-                  Expanded(child: StatCard(icon: Icons.note_alt_outlined, value: '${stats['notes']}', label: 'Not')),
+                  Expanded(child: StatCard(icon: Icons.note_alt_outlined, value: '${stats['notes']}', label: 'Not', color: AppColors.lavender)),
                 ]),
 
                 // Günlük hedef
@@ -251,7 +268,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 _section('Derslerim'),
                 Wrap(spacing: 8, runSpacing: 8, children: [
                   for (final s in subjects)
-                    Chip(avatar: const Icon(Icons.menu_book_outlined, size: 18), label: Text(s['name'] as String)),
+                    Chip(
+                        avatar: CircleAvatar(radius: 6, backgroundColor: AppColors.colorFor(s['name'] as String)),
+                        label: Text(s['name'] as String)),
                   ActionChip(
                     avatar: const Icon(Icons.add, size: 18),
                     label: const Text('Ders ekle'),

@@ -8,6 +8,7 @@ import '../core/utils/activity.dart';
 import '../core/theme/app_colors.dart';
 import '../core/utils/chat_context.dart';
 import '../core/utils/default_subjects.dart';
+import '../core/widgets/brand.dart' show owlAsset;
 import '../db.dart';
 import '../widgets.dart';
 
@@ -114,7 +115,7 @@ class _ChatScreenState extends State<ChatScreen> {
       width: size,
       height: size,
       decoration: const BoxDecoration(gradient: AppColors.brandGradient, shape: BoxShape.circle),
-      child: Icon(Icons.auto_awesome, size: size * 0.55, color: AppColors.white),
+      child: Padding(padding: EdgeInsets.all(size * 0.14), child: Image.asset(owlAsset)),
     );
   }
 

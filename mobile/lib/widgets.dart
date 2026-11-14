@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/theme/app_colors.dart';
 
 /// Tüm ekranlarda kullanılan kart. İmza eskisiyle aynı, görünüm yenilendi.
 class AppCard extends StatelessWidget {
@@ -13,14 +14,17 @@ class AppCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: cs.primary.withValues(alpha: 0.07), blurRadius: 14, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 1)),
+        ],
       ),
       child: Material(
         color: cs.surfaceContainerLow,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           side: BorderSide(color: cs.outlineVariant),
         ),
         child: InkWell(onTap: onTap, child: Padding(padding: padding, child: child)),
@@ -56,10 +60,16 @@ class EmptyState extends StatelessWidget {
         child: FadeSlideIn(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(color: cs.primaryContainer, shape: BoxShape.circle),
-              child: Icon(icon, size: 44, color: cs.onPrimaryContainer),
+              width: 104,
+              height: 104,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [
+                  AppColors.lavender.withValues(alpha: .22),
+                  AppColors.sky.withValues(alpha: .18),
+                ], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius: BorderRadius.circular(34),
+              ),
+              child: Icon(icon, size: 46, color: cs.primary),
             ),
             const SizedBox(height: 20),
             Text(text,
@@ -136,7 +146,7 @@ class _SkeletonListState extends State<SkeletonList> with SingleTickerProviderSt
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
             color: cs.surfaceContainerHigh.withValues(alpha: 0.35 + 0.35 * _c.value),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
           ),
         ),
       ),
